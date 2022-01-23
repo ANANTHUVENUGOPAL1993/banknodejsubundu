@@ -1,3 +1,9 @@
+///import jsonwebtoken
+
+const jwt = require('jsonwebtoken')
+
+
+
 users = {
   1000: {
     acno: 1000,
@@ -30,9 +36,9 @@ const register = (acno, password, uname) => {
   let db = users
   if (acno in db) {
     return {
-      statusCode:401,
-      status:false,
-      message:"account already exit!!!!!!pls login"
+      statusCode: 401,
+      status: false,
+      message: "account already exit!!!!!!pls login"
     }
   }
   else {
@@ -45,56 +51,61 @@ const register = (acno, password, uname) => {
     }
 
     return {
-      statusCode:200,
+      statusCode: 200,
       status: true,
       message: "account successfully created!!!!!"
     }
   }
 
-} 
+}
 
 
 
-  const login=(acno,pwd)=>{
-   
+const login = (acno, pwd) => {
 
-    var acno=acno;
-    var password=pwd;
-    let database=users
-    
-    if(acno in database){
-      if(password==database[acno]["password"]){
-        currentAcno=acno
-        currentUserName=database[acno]["uname"]
-        return {
-          statusCode:200,
-          status: true,
-          message: "logged in !!!!!"
-        }
-  
 
+  var acno = acno;
+  var password = pwd;
+  let database = users
+
+  if (acno in database) {
+    if (password == database[acno]["password"]) {
+      currentAcno = acno
+      currentUserName = database[acno]["uname"]
+      //token generation
+      const token = jwt.sign({
+        currentAcc: acno
+      }, 'specialtoken')
+      return {
+        statusCode: 200,
+        status: true,
+        message: "logged in !!!!!",
+        token
       }
-      else{
-        return {
-          statusCode:401,
-          status: false,
-          message: "incorrect Password !!!!!"
-        }
-      }
+
 
     }
-    else{
+    else {
       return {
-        statusCode:401,
+        statusCode: 401,
         status: false,
-        message: "invalid account no !!!!!"
+        message: "incorrect Password !!!!!"
       }
+    }
+
+  }
+  else {
+    return {
+      statusCode: 401,
+      status: false,
+      message: "invalid account no !!!!!"
     }
   }
+}
 
 ////deposit
 
-const deposit=(acno, password, amt)=> {
+const deposit = (acno, password, amt) => {
   var amount = parseInt(amt)
   let db = users;
 
@@ -102,96 +113,133 @@ const deposit=(acno, password, amt)=> {
     if (password == db[acno]["password"]) {
       db[acno]["balance"] = db[acno]["balance"] + amount
       db[acno].transaction.push({
-        amount:amount,
-        type:"CREDIT"
+        amount: amount,
+        type: "CREDIT"
       })
-      return{
-        statusCode:200,
-        status:true,
-        message:amount+"Amount credited and the new balance is "+db[acno]["balance"]
+      return {
+        statusCode: 200,
+        status: true,
+        message: amount + "Amount credited and the new balance is " + db[acno]["balance"]
 
-      } 
+      }
     }
     else {
       //alert("Incorrect Password")
-      return{
-        statusCode:401,
-        status:false,
-        message:"Incorrect Password"
+      return {
+        statusCode: 401,
+        status: false,
+        message: "Incorrect Password"
 
-      } 
+      }
     }
 
   }
   else {
-   // alert("Account does not exit!!!!!!")
-    return{
-      statusCode:401,
-      status:false,
-      message:"Account no does not exit"
+    // alert("Account does not exit!!!!!!")
+    return {
+      statusCode: 401,
+      status: false,
+      message: "Account no does not exit"
 
-    } 
+    }
   }
 }
 
 ///withdraw
 
-const withdraw=(acno, password, amt)=> {
+const withdraw = (req, acno, password, amt) => {
   var amount = parseInt(amt);
   let db = users;
   if (acno in db) {
-    if (password == db[acno]["password"]) {
-      var bal = db[acno]["balance"]
-      if (bal >=amount) {
-        db[acno]["balance"] = db[acno]["balance"] - amount
-        db[acno].transaction.push({
-          amount:amount,
-          type:"DEBIT"
-        })
-        
-        
-       // return db[acno]["balance"];
-       return{
-        statusCode:200,
-        status:true,
-        message:amount+"Amount debited and the new balance is "+db[acno]["balance"]
+  if (req.currentAcc1 == acno) {
+      if (password == db[acno]["password"]) {
+        var bal = db[acno]["balance"]
+        if (bal >= amount) {
+          db[acno]["balance"] = db[acno]["balance"] - amount
+          db[acno].transaction.push({
+            amount: amount,
+            type: "DEBIT"
+          })
 
-      } 
+
+          // return db[acno]["balance"];
+          return {
+            statusCode: 200,
+            status: true,
+            message: amount + "Amount debited and the new balance is " + db[acno]["balance"]
+
+          }
+
+        }
+        else {
+          return {
+            statusCode: 401,
+            status: false,
+            message: "Insufficient balance"
+
+          }
+        }
 
       }
       else {
-        return{
-          statusCode:401,
-          status:false,
-          message:"Insufficient balance"
-  
+        return {
+          statusCode: 401,
+          status: false,
+          message: "Incorrect Password"
+
         }
       }
 
     }
-    else {
-      return{
-        statusCode:401,
-        status:false,
-        message:"Incorrect Password"
 
+    else{
+
+      return {
+        statusCode: 401,
+        status: false,
+        message: "Acess Denied"
+  
       }
+
     }
 
   }
   else {
-    return{
-      statusCode:401,
-      status:false,
-      message:"Account no does not exit"
+    return {
+      statusCode: 401,
+      status: false,
+      message: "Account no does not exit"
 
-    } 
+    }
   }
 
 }
 
-  //export
 
-module.exports={
-  register,login,deposit,withdraw
+
+
+////////////transaction////////////
+const getTransaction = (req) => {
+  acno=req.currentAcc1
+  if (acno in users) {
+    return {
+      statusCode: 200,
+      status: true,
+      transaction: users[acno].transaction
+    }
+  }
+  else {
+    return {
+      statusCode: 401,
+      status: false,
+      message: "Account does not exit!!!"
+    }
+
+  }
+}
+
+//export
+
+module.exports = {
+  register, login, deposit, withdraw, getTransaction
 }
