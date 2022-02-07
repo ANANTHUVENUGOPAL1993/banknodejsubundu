@@ -3,6 +3,10 @@
 const express = require('express')
 
 
+///////import cors
+
+const cors = require('cors')
+
 ///////import register
 
 const databaseServices = require('./services/data.services')
@@ -11,6 +15,18 @@ const databaseServices = require('./services/data.services')
 
 const app = express()
 
+
+///////////cors
+
+app.use(cors({
+    origin: 'http://localhost:4200'
+  // origin: 'http://192.168.1.4:8080'
+
+
+}))
+
+
+
 ////////import token
 
 const jwt = require('jsonwebtoken')
@@ -18,19 +34,19 @@ const jwt = require('jsonwebtoken')
 
 ///////////jwtMiddleware creation
 
-const jwtMiddleware=(req,res,next)=>{
-    try{
-        const token=req.headers["x-m-l"]
-        const data=jwt.verify(token,'specialtoken')
-        req.currentAcc1=data.currentAcc
+const jwtMiddleware = (req, res, next) => {
+    try {
+        const token = req.headers["x-m-l"]
+        const data = jwt.verify(token, 'specialtoken')
+        req.currentAcc1 = data.currentAcc
         next()
 
     }
-    catch{
+    catch {
         res.json({
-            statusCode:401,
-            status:false,
-            message:"please log in "
+            statusCode: 401,
+            status: false,
+            message: "please log in........ "
         })
     }
 }
@@ -52,13 +68,13 @@ app.listen(3000, () => {
 
 /////////////////middleware- application specific/////////////////////
 //////1st method//////////////////
-app.use((req,res,next)=>{
+app.use((req, res, next) => {
     console.log("APPLICATION SPECIFIC MIDDLEWARE");
     next()
 })
 
 //////2nd method///////////////
-const appMid=(req,res,next)=>{
+const appMid = (req, res, next) => {
     console.log("application specific middleware 2");
     next()
 
@@ -95,9 +111,9 @@ app.use(appMid)
 ///resolving http request
 //PUT  Request - to modify entirely
 
-// app.put('/',(req, res)=>{
-//     res.send("PUT REQUEST")
-//     })
+app.put('/', (req, res) => {
+    res.send("PUT REQUEST")
+})
 
 ///resolving http request
 //PATCH  Request - to modify partially
@@ -122,8 +138,8 @@ app.use(appMid)
 
 app.post('/register', (req, res) => {
     // console.log(req.body.acno);
-    const result = databaseServices.register(req.body.acno, req.body.password, req.body.uname)
-    res.status(result.statusCode).json(result)
+     databaseServices.register(req.body.acno, req.body.password, req.body.uname).then(result => { res.status(result.statusCode).json(result) })
+
 
 })
 
@@ -133,31 +149,42 @@ app.post('/register', (req, res) => {
 
 app.post('/login', (req, res) => {
     console.log(req.body);
-    const result = databaseServices.login(req.body.acno, req.body.password)
-    res.status(result.statusCode).json(result)
+
+    ///asyn
+     databaseServices.login(req.body.acno, req.body.password).then(result => { res.status(result.statusCode).json(result) })
+
 })
 
 ///////deposit
 
 
-app.post('/deposit',jwtMiddleware, (req, res) => {
+app.post('/deposit', jwtMiddleware, (req, res) => {
     console.log(req.body);
-    const result = databaseServices.deposit(req.body.acno, req.body.password, req.body.amt)
-    res.status(result.statusCode).json(result)
+    databaseServices.deposit(req.body.acno, req.body.password, req.body.amt).then(result => { res.status(result.statusCode).json(result) })
+
 })    ///////////router specific middleware
 
 ///////withdraw 
 
-app.post('/withdraw',jwtMiddleware, (req, res) => {
+app.post('/withdraw', jwtMiddleware, (req, res) => {
     console.log(req.body);
-    const result = databaseServices.withdraw(req,req.body.acno, req.body.password, req.body.amt)
-    res.status(result.statusCode).json(result)
+    databaseServices.withdraw(req, req.body.acno, req.body.password, req.body.amt).then(result => { res.status(result.statusCode).json(result) })
+
 })   ///////////router specific middleware
 
 /////////transaction
 
-app.post('/getTransaction', (req, res) => {
+app.post('/getTransaction/:acno', jwtMiddleware, (req, res) => {
     //console.log(req.body);
-    const result = databaseServices.getTransaction(req)
-    res.status(result.statusCode).json(result)
+    databaseServices.getTransaction(req.params.acno).then(result => { res.status(result.statusCode).json(result) })
+
 })
+
+app.delete('/deleteAcc/:acno', jwtMiddleware, (req, res) => {
+    //console.log(req.body);
+    databaseServices.deleteAcc(req.params.acno).then(result => { res.status(result.statusCode).json(result) })
+
+})
+
+
+/////jason- javascript object notation
